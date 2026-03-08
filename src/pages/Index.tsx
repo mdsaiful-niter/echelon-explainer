@@ -112,7 +112,7 @@ const Index = () => {
               Gaussian Elimination
             </h1>
             <p className="text-xs text-muted-foreground tracking-wide uppercase mt-0.5">
-              Augmented Matrix → Row Echelon Form
+              Augmented Matrix → {mode === "rref" ? "Reduced Row Echelon Form" : "Row Echelon Form"}
             </p>
           </div>
         </div>
