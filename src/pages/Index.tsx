@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import MatrixInput from "@/components/MatrixInput";
 import MatrixDisplay from "@/components/MatrixDisplay";
 import StepDisplay from "@/components/StepDisplay";
-import { gaussianElimination, gaussJordanElimination, type Step } from "@/lib/gaussian";
-import { Grid3X3, Sparkles, ArrowDown, RotateCcw } from "lucide-react";
+import { gaussianElimination, gaussJordanElimination, extractSolution, type Step, type Solution } from "@/lib/gaussian";
+import { Grid3X3, Sparkles, ArrowDown, RotateCcw, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 
 const EXAMPLES: { label: string; matrix: number[][] }[] = [
   {
