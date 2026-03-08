@@ -2,18 +2,17 @@ import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import MatrixInput from "@/components/MatrixInput";
-import MatrixDisplay from "@/components/MatrixDisplay";
-import StepDisplay from "@/components/StepDisplay";
+import SolutionDisplay from "@/components/SolutionDisplay";
 import { gaussianElimination, type Step } from "@/lib/gaussian";
-import { Grid3X3, Sparkles, ArrowDown, RotateCcw } from "lucide-react";
+import { Grid3X3, Sparkles, RotateCcw } from "lucide-react";
 
 const EXAMPLES: { label: string; matrix: number[][] }[] = [
   {
     label: "3×4",
     matrix: [
-      [2, 1, -1, 8],
-      [-3, -1, 2, -11],
-      [-2, 1, 2, -3],
+      [1, -1, 1, 1],
+      [-3, 2, -3, -6],
+      [2, -5, 4, 5],
     ],
   },
   {
@@ -40,6 +39,7 @@ const Index = () => {
     Array.from({ length: 3 }, () => Array(4).fill(0))
   );
   const [steps, setSteps] = useState<Step[] | null>(null);
+  const [initialSnapshot, setInitialSnapshot] = useState<number[][] | null>(null);
   const [showInput, setShowInput] = useState(false);
 
   const handleSizeChange = (n: number) => {
@@ -47,6 +47,7 @@ const Index = () => {
     setSize(clamped);
     setValues(Array.from({ length: clamped }, () => Array(clamped + 1).fill(0)));
     setSteps(null);
+    setInitialSnapshot(null);
     setShowInput(true);
   };
 
@@ -62,21 +63,22 @@ const Index = () => {
     setSize(matrix.length);
     setValues(matrix.map((r) => [...r]));
     setSteps(null);
+    setInitialSnapshot(null);
     setShowInput(true);
   };
 
   const reduce = () => {
-    const result = gaussianElimination(values);
+    const snapshot = values.map((r) => [...r]);
+    setInitialSnapshot(snapshot);
+    const result = gaussianElimination(snapshot);
     setSteps(result);
   };
 
   const reset = () => {
     setValues(Array.from({ length: size }, () => Array(size + 1).fill(0)));
     setSteps(null);
+    setInitialSnapshot(null);
   };
-
-  const finalMatrix =
-    steps && steps.length > 0 ? steps[steps.length - 1].matrix : null;
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -194,50 +196,14 @@ const Index = () => {
           )}
         </AnimatePresence>
 
-        {/* Steps */}
+        {/* Solution */}
         <AnimatePresence>
-          {steps && steps.length > 0 && (
+          {steps !== null && initialSnapshot && (
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col gap-4"
             >
-              <div className="flex items-center gap-2">
-                <ArrowDown className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                  Elimination Steps
-                </h2>
-                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-mono">
-                  {steps.length} ops
-                </span>
-              </div>
-              <StepDisplay steps={steps} />
-            </motion.section>
-          )}
-        </AnimatePresence>
-
-        {steps && steps.length === 0 && (
-          <motion.section
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="glass rounded-xl p-6 text-center text-muted-foreground text-sm"
-          >
-            Already in Row Echelon Form — no operations needed.
-          </motion.section>
-        )}
-
-        {/* Final Result */}
-        <AnimatePresence>
-          {finalMatrix && (
-            <motion.section
-              initial={{ opacity: 0, y: 20, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              className="result-card p-6 flex flex-col items-center gap-4 glow-accent"
-            >
-              <h2 className="text-sm font-bold uppercase tracking-wider text-accent">
-                ✓ Row Echelon Form
-              </h2>
-              <MatrixDisplay matrix={finalMatrix} />
+              <SolutionDisplay initialMatrix={initialSnapshot} steps={steps} />
             </motion.section>
           )}
         </AnimatePresence>
