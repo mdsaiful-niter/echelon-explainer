@@ -41,6 +41,7 @@ const Index = () => {
   );
   const [steps, setSteps] = useState<Step[] | null>(null);
   const [rrefSteps, setRrefSteps] = useState<Step[] | null>(null);
+  const [solution, setSolution] = useState<Solution | null>(null);
   const [mode, setMode] = useState<"ref" | "rref">("ref");
   const [showInput, setShowInput] = useState(false);
 
