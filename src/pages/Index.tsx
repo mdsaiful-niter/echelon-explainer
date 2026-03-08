@@ -295,7 +295,7 @@ const Index = () => {
               className="result-card p-6 flex flex-col items-center gap-4 glow-accent"
             >
               <h2 className="text-sm font-bold uppercase tracking-wider text-accent">
-                ✓ Row Echelon Form
+                ✓ {mode === "rref" ? "Reduced Row Echelon Form" : "Row Echelon Form"}
               </h2>
               <MatrixDisplay matrix={finalMatrix} />
             </motion.section>
