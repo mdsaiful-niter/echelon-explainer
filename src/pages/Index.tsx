@@ -8,15 +8,36 @@ import { gaussianElimination, type Step } from "@/lib/gaussian";
 import { Grid3X3, Sparkles, ArrowDown, RotateCcw } from "lucide-react";
 
 const EXAMPLES: { label: string; matrix: number[][] }[] = [
-  { label: "3×3 Basic", matrix: [[2, 1, -1], [-3, -1, 2], [-2, 1, 2]] },
-  { label: "3×3 Swap", matrix: [[0, 2, 1], [3, -1, 2], [1, 0, 3]] },
-  { label: "4×4", matrix: [[1, 2, -1, 3], [2, 5, 0, 1], [3, 7, -1, 4], [1, 3, 1, -2]] },
+  {
+    label: "3×4",
+    matrix: [
+      [2, 1, -1, 8],
+      [-3, -1, 2, -11],
+      [-2, 1, 2, -3],
+    ],
+  },
+  {
+    label: "2×3",
+    matrix: [
+      [1, -2, 1],
+      [3, 1, 11],
+    ],
+  },
+  {
+    label: "4×5",
+    matrix: [
+      [1, 2, -1, 3, 5],
+      [2, 5, 0, 1, 4],
+      [3, 7, -1, 4, 9],
+      [1, 3, 1, -2, -1],
+    ],
+  },
 ];
 
 const Index = () => {
   const [size, setSize] = useState(3);
   const [values, setValues] = useState<number[][]>(
-    Array.from({ length: 3 }, () => Array(3).fill(0))
+    Array.from({ length: 3 }, () => Array(4).fill(0))
   );
   const [steps, setSteps] = useState<Step[] | null>(null);
   const [showInput, setShowInput] = useState(false);
@@ -24,7 +45,7 @@ const Index = () => {
   const handleSizeChange = (n: number) => {
     const clamped = Math.max(2, Math.min(6, n));
     setSize(clamped);
-    setValues(Array.from({ length: clamped }, () => Array(clamped).fill(0)));
+    setValues(Array.from({ length: clamped }, () => Array(clamped + 1).fill(0)));
     setSteps(null);
     setShowInput(true);
   };
@@ -50,11 +71,12 @@ const Index = () => {
   };
 
   const reset = () => {
-    setValues(Array.from({ length: size }, () => Array(size).fill(0)));
+    setValues(Array.from({ length: size }, () => Array(size + 1).fill(0)));
     setSteps(null);
   };
 
-  const finalMatrix = steps && steps.length > 0 ? steps[steps.length - 1].matrix : null;
+  const finalMatrix =
+    steps && steps.length > 0 ? steps[steps.length - 1].matrix : null;
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -75,14 +97,14 @@ const Index = () => {
               Gaussian Elimination
             </h1>
             <p className="text-xs text-muted-foreground tracking-wide uppercase mt-0.5">
-              Step-by-step Row Echelon Form
+              Augmented Matrix → Row Echelon Form
             </p>
           </div>
         </div>
       </header>
 
       <main className="relative container mx-auto px-4 py-8 max-w-3xl flex flex-col gap-6">
-        {/* Dimension & Examples */}
+        {/* Size & Examples */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -91,7 +113,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row sm:items-end gap-4">
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Matrix Size
+                Equations (n)
               </label>
               <div className="flex items-center gap-2">
                 {[2, 3, 4, 5, 6].map((n) => (
@@ -108,10 +130,13 @@ const Index = () => {
                   </button>
                 ))}
               </div>
+              <span className="text-[10px] text-muted-foreground">
+                Creates {size} × {size + 1} augmented matrix
+              </span>
             </div>
             <div className="flex flex-col gap-2 sm:ml-auto">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Examples
+                Load Example
               </label>
               <div className="flex gap-2">
                 {EXAMPLES.map((ex, i) => (
@@ -139,7 +164,7 @@ const Index = () => {
             >
               <div className="flex items-center justify-between w-full">
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Enter Values
+                  Augmented Matrix [{size} × {size + 1}]
                 </label>
                 <button
                   onClick={reset}
@@ -149,7 +174,14 @@ const Index = () => {
                   Clear
                 </button>
               </div>
-              <MatrixInput size={size} values={values} onChange={handleCellChange} />
+              <div className="overflow-x-auto w-full flex justify-center">
+                <MatrixInput
+                  rows={size}
+                  cols={size + 1}
+                  values={values}
+                  onChange={handleCellChange}
+                />
+              </div>
               <Button
                 onClick={reduce}
                 size="lg"
