@@ -337,8 +337,8 @@ const Index = () => {
               )}
               {solution.type === 'infinite' && (
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                  <p className="text-sm font-medium text-yellow-400">{solution.message}</p>
+                  <AlertTriangle className="h-5 w-5 text-accent" />
+                  <p className="text-sm font-medium text-accent">{solution.message}</p>
                 </div>
               )}
               {solution.type === 'none' && (
