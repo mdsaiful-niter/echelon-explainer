@@ -28,7 +28,9 @@ const MatrixDisplay = ({ matrix, label, pivotCell, highlightRows }: Props) => {
               {row.map((val, j) => {
                 const isPivot = pivotCell && pivotCell[0] === i && pivotCell[1] === j;
                 const isZero = Math.abs(val) < 1e-10;
-                const isLeadingOne = Math.abs(val - 1) < 1e-10 && j <= i;
+                const display = formatNum(isZero ? 0 : val);
+                const isFraction = display.includes("/");
+                const isLeadingOne = display === "1" && j <= i;
 
                 return (
                   <div key={j} className="flex items-center gap-1">
@@ -44,9 +46,9 @@ const MatrixDisplay = ({ matrix, label, pivotCell, highlightRows }: Props) => {
                           : isZero && j < augCol
                           ? "text-muted-foreground/40"
                           : "text-foreground"
-                      }`}
+                      } ${isFraction ? "text-xs" : ""}`}
                     >
-                      {formatNum(isZero ? 0 : val)}
+                      {display}
                     </div>
                   </div>
                 );
