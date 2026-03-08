@@ -87,8 +87,11 @@ const Index = () => {
     setRrefSteps(null);
   };
 
-  const finalMatrix =
+  const refFinal =
     steps && steps.length > 0 ? steps[steps.length - 1].matrix : null;
+  const rrefFinal =
+    rrefSteps && rrefSteps.length > 0 ? rrefSteps[rrefSteps.length - 1].matrix : null;
+  const finalMatrix = mode === "rref" && rrefFinal ? rrefFinal : refFinal;
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
