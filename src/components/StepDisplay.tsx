@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import type { Step } from "@/lib/gaussian";
 import MatrixDisplay from "./MatrixDisplay";
+import { Info } from "lucide-react";
 
 interface Props {
   steps: Step[];
@@ -14,18 +15,34 @@ const StepDisplay = ({ steps }: Props) => (
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: idx * 0.08 }}
-        className="step-card p-4 flex flex-col sm:flex-row items-center gap-4"
+        className="step-card p-4 flex flex-col gap-3"
       >
-        <div className="flex flex-col items-center gap-1.5 min-w-[160px] shrink-0">
-          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
+        {/* Step header */}
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest shrink-0">
             Step {idx + 1}
           </span>
-          <span className="step-operation text-sm leading-tight text-center">
+          <span className="step-operation text-sm leading-tight">
             {step.operation}
           </span>
         </div>
-        <div className="w-px h-10 bg-border hidden sm:block" />
-        <MatrixDisplay matrix={step.matrix} pivotCell={step.pivotCell} />
+
+        {/* Explanation */}
+        <div className="flex items-start gap-2 bg-primary/5 rounded-lg px-3 py-2">
+          <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {step.explanation}
+          </p>
+        </div>
+
+        {/* Matrix */}
+        <div className="flex justify-center">
+          <MatrixDisplay
+            matrix={step.matrix}
+            pivotCell={step.pivotCell}
+            highlightRows={step.changedRows}
+          />
+        </div>
       </motion.div>
     ))}
   </div>
