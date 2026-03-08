@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import MatrixInput from "@/components/MatrixInput";
 import MatrixDisplay from "@/components/MatrixDisplay";
 import StepDisplay from "@/components/StepDisplay";
-import { gaussianElimination, gaussJordanElimination, type Step } from "@/lib/gaussian";
-import { Grid3X3, Sparkles, ArrowDown, RotateCcw } from "lucide-react";
+import { gaussianElimination, gaussJordanElimination, extractSolution, type Step, type Solution } from "@/lib/gaussian";
+import { Grid3X3, Sparkles, ArrowDown, RotateCcw, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 
 const EXAMPLES: { label: string; matrix: number[][] }[] = [
   {
@@ -41,6 +41,7 @@ const Index = () => {
   );
   const [steps, setSteps] = useState<Step[] | null>(null);
   const [rrefSteps, setRrefSteps] = useState<Step[] | null>(null);
+  const [solution, setSolution] = useState<Solution | null>(null);
   const [mode, setMode] = useState<"ref" | "rref">("ref");
   const [showInput, setShowInput] = useState(false);
 
@@ -74,10 +75,14 @@ const Index = () => {
       const result = gaussianElimination(values);
       setSteps(result);
       setRrefSteps(null);
+      const finalM = result.length > 0 ? result[result.length - 1].matrix : values;
+      setSolution(extractSolution(finalM));
     } else {
       const { refSteps, rrefSteps: rr } = gaussJordanElimination(values);
       setSteps(refSteps);
       setRrefSteps(rr);
+      const finalM = rr.length > 0 ? rr[rr.length - 1].matrix : (refSteps.length > 0 ? refSteps[refSteps.length - 1].matrix : values);
+      setSolution(extractSolution(finalM));
     }
   };
 
@@ -85,6 +90,7 @@ const Index = () => {
     setValues(Array.from({ length: size }, () => Array(size + 1).fill(0)));
     setSteps(null);
     setRrefSteps(null);
+    setSolution(null);
   };
 
   const refFinal =
@@ -298,6 +304,49 @@ const Index = () => {
                 ✓ {mode === "rref" ? "Reduced Row Echelon Form" : "Row Echelon Form"}
               </h2>
               <MatrixDisplay matrix={finalMatrix} />
+            </motion.section>
+          )}
+        </AnimatePresence>
+
+        {/* Solution Summary */}
+        <AnimatePresence>
+          {solution && finalMatrix && (
+            <motion.section
+              initial={{ opacity: 0, y: 20, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className="glass rounded-xl p-6 flex flex-col items-center gap-4 border border-border/50"
+            >
+              {solution.type === 'unique' && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-accent" />
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-accent">
+                      Solution
+                    </h2>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-4">
+                    {solution.variables?.map((v) => (
+                      <div key={v.name} className="flex items-center gap-2 bg-accent/10 rounded-lg px-4 py-2.5 border border-accent/20">
+                        <span className="font-mono font-bold text-accent text-base">{v.name}</span>
+                        <span className="text-muted-foreground">=</span>
+                        <span className="font-mono font-bold text-foreground text-base">{v.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {solution.type === 'infinite' && (
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-accent" />
+                  <p className="text-sm font-medium text-accent">{solution.message}</p>
+                </div>
+              )}
+              {solution.type === 'none' && (
+                <div className="flex items-center gap-2">
+                  <XCircle className="h-5 w-5 text-destructive" />
+                  <p className="text-sm font-medium text-destructive">{solution.message}</p>
+                </div>
+              )}
             </motion.section>
           )}
         </AnimatePresence>
