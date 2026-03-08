@@ -65,6 +65,7 @@ const Index = () => {
     setSize(matrix.length);
     setValues(matrix.map((r) => [...r]));
     setSteps(null);
+    setRrefSteps(null);
     setShowInput(true);
   };
 
