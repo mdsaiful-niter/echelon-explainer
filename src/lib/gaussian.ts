@@ -1,9 +1,8 @@
 export interface Step {
-  operation: string;
-  explanation: string;
+  operations: string[];
   matrix: number[][];
-  pivotCell?: [number, number];
   changedRows?: number[];
+  isFinal?: boolean;
 }
 
 // Fraction representation: [numerator, denominator]
@@ -53,6 +52,10 @@ function fracSub([n1, d1]: Frac, [n2, d2]: Frac): Frac {
   return fracSimplify([n1 * d2 - n2 * d1, d1 * d2]);
 }
 
+function fracAdd([n1, d1]: Frac, [n2, d2]: Frac): Frac {
+  return fracSimplify([n1 * d2 + n2 * d1, d1 * d2]);
+}
+
 function fracToStr([n, d]: Frac): string {
   if (d === 1) return n.toString();
   return `${n}/${d}`;
@@ -79,16 +82,6 @@ export function formatNum(n: number): string {
   return fracToStr(f);
 }
 
-function formatCoeffFrac(f: Frac): string {
-  const [n, d] = f;
-  if (d === 1) {
-    if (n === 1) return "";
-    if (n === -1) return "−";
-    return fracToStr(f);
-  }
-  return `(${fracToStr(f)})`;
-}
-
 export function gaussianElimination(input: number[][]): Step[] {
   const steps: Step[] = [];
   const rows = input.length;
@@ -98,66 +91,106 @@ export function gaussianElimination(input: number[][]): Step[] {
   let pivotRow = 0;
 
   for (let col = 0; col < cols - 1 && pivotRow < rows; col++) {
-    // Partial pivoting
-    let maxIdx = pivotRow;
-    for (let i = pivotRow + 1; i < rows; i++) {
-      if (fracAbs(m[i][col]) > fracAbs(m[maxIdx][col])) maxIdx = i;
+    // Find first non-zero in this column at or below pivotRow
+    let maxIdx = -1;
+    for (let i = pivotRow; i < rows; i++) {
+      if (!fracIsZero(m[i][col])) {
+        if (maxIdx === -1 || fracAbs(m[i][col]) > fracAbs(m[maxIdx][col])) {
+          maxIdx = i;
+        }
+      }
     }
 
-    if (fracIsZero(m[maxIdx][col])) continue;
+    if (maxIdx === -1) continue;
 
-    // Swap
+    // Swap if needed
     if (maxIdx !== pivotRow) {
       [m[pivotRow], m[maxIdx]] = [m[maxIdx], m[pivotRow]];
       steps.push({
-        operation: `R${pivotRow + 1} ↔ R${maxIdx + 1}`,
-        explanation: `Swap rows to bring the largest value (${fracToStr(m[pivotRow][col])}) into the pivot position for column ${col + 1}.`,
+        operations: [`R${pivotRow + 1} ↔ R${maxIdx + 1}`],
         matrix: fracMatrixToNum(m),
-        pivotCell: [pivotRow, col],
         changedRows: [pivotRow, maxIdx],
       });
     }
 
-    // Scale
-    const pivotVal: Frac = [...m[pivotRow][col]];
-    if (!(pivotVal[0] === pivotVal[1])) {
-      const label = pivotVal[0] === -1 && pivotVal[1] === 1
-        ? `R${pivotRow + 1} → −R${pivotRow + 1}`
-        : `R${pivotRow + 1} → R${pivotRow + 1} / ${fracToStr(pivotVal)}`;
-      for (let j = 0; j < cols; j++) m[pivotRow][j] = fracDiv(m[pivotRow][j], pivotVal);
-      steps.push({
-        operation: label,
-        explanation: `Divide row ${pivotRow + 1} by ${fracToStr(pivotVal)} so the pivot element becomes 1.`,
-        matrix: fracMatrixToNum(m),
-        pivotCell: [pivotRow, col],
-        changedRows: [pivotRow],
-      });
-    }
+    // Eliminate all rows below the pivot - group into one step
+    const ops: string[] = [];
+    const changed: number[] = [];
+    const pivot = m[pivotRow][col];
 
-    // Eliminate below
     for (let i = pivotRow + 1; i < rows; i++) {
-      const factor: Frac = [...m[i][col]];
-      if (fracIsZero(factor)) continue;
+      if (fracIsZero(m[i][col])) continue;
+
+      const target = m[i][col];
+      // Compute factor: we want to do R_i = R_i - (target/pivot) * R_pivotRow
+      // To keep integers, if pivot divides target evenly, use integer multiple
+      const [pn, pd] = pivot;
+      const [tn, td] = target;
+      
+      // factor = target / pivot
+      const factor = fracDiv(target, pivot);
+      const [fn, fd] = factor;
+
+      if (fd === 1) {
+        // Integer factor - nice clean operation
+        if (fn > 0) {
+          ops.push(fn === 1
+            ? `R${i + 1} → R${i + 1} − R${pivotRow + 1}`
+            : `R${i + 1} → R${i + 1} − ${fn}R${pivotRow + 1}`);
+        } else {
+          const abs = Math.abs(fn);
+          ops.push(abs === 1
+            ? `R${i + 1} → R${i + 1} + R${pivotRow + 1}`
+            : `R${i + 1} → R${i + 1} + ${abs}R${pivotRow + 1}`);
+        }
+      } else {
+        // Fractional factor
+        if (fn > 0) {
+          ops.push(`R${i + 1} → R${i + 1} − (${fracToStr(factor)})R${pivotRow + 1}`);
+        } else {
+          const neg: Frac = [-fn, fd];
+          ops.push(`R${i + 1} → R${i + 1} + (${fracToStr(neg)})R${pivotRow + 1}`);
+        }
+      }
 
       for (let j = 0; j < cols; j++) {
         m[i][j] = fracSub(m[i][j], fracMul(factor, m[pivotRow][j]));
       }
+      changed.push(i);
+    }
 
-      let label: string;
-      if (fracToNum(factor) > 0) {
-        label = `R${i + 1} → R${i + 1} − ${formatCoeffFrac(factor)}R${pivotRow + 1}`;
-      } else {
-        const neg: Frac = [-factor[0], factor[1]];
-        label = `R${i + 1} → R${i + 1} + ${formatCoeffFrac(neg)}R${pivotRow + 1}`;
-      }
-
+    if (ops.length > 0) {
       steps.push({
-        operation: label,
-        explanation: `Eliminate the ${fracToStr(factor)} in row ${i + 1}, column ${col + 1} to create a zero below the pivot.`,
+        operations: ops,
         matrix: fracMatrixToNum(m),
-        pivotCell: [pivotRow, col],
-        changedRows: [i],
+        changedRows: changed,
       });
+    }
+
+    // Scale pivot row to make pivot = 1 (if not already 1)
+    const currentPivot = m[pivotRow][col];
+    if (currentPivot[0] !== currentPivot[1]) {
+      // Check if it's -1
+      if (currentPivot[0] === -1 && currentPivot[1] === 1) {
+        for (let j = 0; j < cols; j++) {
+          m[pivotRow][j] = fracMul(m[pivotRow][j], [-1, 1]);
+        }
+        steps.push({
+          operations: [`R${pivotRow + 1} → −R${pivotRow + 1}`],
+          matrix: fracMatrixToNum(m),
+          changedRows: [pivotRow],
+        });
+      } else if (!fracIsZero(currentPivot)) {
+        const divisor = fracToStr(currentPivot);
+        for (let j = 0; j < cols; j++) {
+          m[pivotRow][j] = fracDiv(m[pivotRow][j], currentPivot);
+        }
+        steps.push({
+          operations: [`R${pivotRow + 1} → R${pivotRow + 1} / ${divisor}`],
+          matrix: fracMatrixToNum(m),
+          changedRows: [pivotRow],
+        });
+      }
     }
 
     pivotRow++;

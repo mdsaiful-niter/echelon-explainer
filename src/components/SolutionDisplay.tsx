@@ -44,9 +44,13 @@ const SolutionDisplay = ({ initialMatrix, steps }: Props) => {
               </span>
             </div>
 
-            {/* Operation */}
             <div className="step-card p-4 flex flex-col gap-3">
-              <div className="step-operation text-sm">{step.operation}</div>
+              {/* Operations */}
+              <div className="flex flex-col gap-1">
+                {step.operations.map((op, opIdx) => (
+                  <div key={opIdx} className="step-operation text-sm">{op}</div>
+                ))}
+              </div>
 
               {/* Label */}
               <div className="text-xs text-muted-foreground font-sans">
