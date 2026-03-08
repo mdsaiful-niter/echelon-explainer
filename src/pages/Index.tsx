@@ -307,6 +307,49 @@ const Index = () => {
             </motion.section>
           )}
         </AnimatePresence>
+
+        {/* Solution Summary */}
+        <AnimatePresence>
+          {solution && finalMatrix && (
+            <motion.section
+              initial={{ opacity: 0, y: 20, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className="glass rounded-xl p-6 flex flex-col items-center gap-4 border border-border/50"
+            >
+              {solution.type === 'unique' && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-accent" />
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-accent">
+                      Solution
+                    </h2>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-4">
+                    {solution.variables?.map((v) => (
+                      <div key={v.name} className="flex items-center gap-2 bg-accent/10 rounded-lg px-4 py-2.5 border border-accent/20">
+                        <span className="font-mono font-bold text-accent text-base">{v.name}</span>
+                        <span className="text-muted-foreground">=</span>
+                        <span className="font-mono font-bold text-foreground text-base">{v.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {solution.type === 'infinite' && (
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                  <p className="text-sm font-medium text-yellow-400">{solution.message}</p>
+                </div>
+              )}
+              {solution.type === 'none' && (
+                <div className="flex items-center gap-2">
+                  <XCircle className="h-5 w-5 text-destructive" />
+                  <p className="text-sm font-medium text-destructive">{solution.message}</p>
+                </div>
+              )}
+            </motion.section>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );
