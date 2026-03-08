@@ -1,69 +1,139 @@
 export interface Step {
   operation: string;
-  explanation: string; // plain-English explanation of why this step is done
+  explanation: string;
   matrix: number[][];
   pivotCell?: [number, number];
-  changedRows?: number[]; // which rows changed in this step
+  changedRows?: number[];
 }
 
-function cloneMatrix(m: number[][]): number[][] {
-  return m.map((r) => [...r]);
+// Fraction representation: [numerator, denominator]
+type Frac = [number, number];
+
+function gcd(a: number, b: number): number {
+  a = Math.abs(a);
+  b = Math.abs(b);
+  while (b) { [a, b] = [b, a % b]; }
+  return a;
+}
+
+function fracSimplify([n, d]: Frac): Frac {
+  if (d < 0) { n = -n; d = -d; }
+  if (n === 0) return [0, 1];
+  const g = gcd(Math.abs(n), d);
+  return [n / g, d / g];
+}
+
+function fracFromNum(x: number): Frac {
+  if (Number.isInteger(x)) return [x, 1];
+  // Convert decimal to fraction with limited denominator
+  const tol = 1e-9;
+  let h1 = 1, h2 = 0, k1 = 0, k2 = 1;
+  let b = x;
+  for (let i = 0; i < 100; i++) {
+    const a = Math.floor(b);
+    let h = a * h1 + h2;
+    let k = a * k1 + k2;
+    h2 = h1; h1 = h;
+    k2 = k1; k1 = k;
+    if (Math.abs(x - h / k) < tol) return fracSimplify([h, k]);
+    if (Math.abs(b - a) < tol) break;
+    b = 1 / (b - a);
+  }
+  return fracSimplify([h1, k1]);
+}
+
+function fracMul([n1, d1]: Frac, [n2, d2]: Frac): Frac {
+  return fracSimplify([n1 * n2, d1 * d2]);
+}
+
+function fracDiv([n1, d1]: Frac, [n2, d2]: Frac): Frac {
+  return fracSimplify([n1 * d2, d1 * n2]);
+}
+
+function fracSub([n1, d1]: Frac, [n2, d2]: Frac): Frac {
+  return fracSimplify([n1 * d2 - n2 * d1, d1 * d2]);
+}
+
+function fracToStr([n, d]: Frac): string {
+  if (d === 1) return n.toString();
+  return `${n}/${d}`;
+}
+
+function fracToNum([n, d]: Frac): number {
+  return n / d;
+}
+
+function fracIsZero([n]: Frac): boolean {
+  return n === 0;
+}
+
+function fracAbs([n, d]: Frac): number {
+  return Math.abs(n / d);
+}
+
+function cloneFracMatrix(m: Frac[][]): Frac[][] {
+  return m.map(r => r.map(f => [...f] as Frac));
+}
+
+function fracMatrixToNum(m: Frac[][]): number[][] {
+  return m.map(r => r.map(f => fracToNum(f)));
 }
 
 export function formatNum(n: number): string {
-  if (Number.isInteger(n)) return n.toString();
-  const rounded = parseFloat(n.toFixed(6));
-  if (Number.isInteger(rounded)) return rounded.toString();
-  return rounded.toString();
+  const f = fracFromNum(n);
+  return fracToStr(f);
 }
 
-function formatCoeff(k: number): string {
-  if (k === 1) return "";
-  if (k === -1) return "−";
-  if (k < 0) return `(${formatNum(k)})`;
-  return formatNum(k);
+function formatCoeffFrac(f: Frac): string {
+  const [n, d] = f;
+  if (d === 1) {
+    if (n === 1) return "";
+    if (n === -1) return "−";
+    return fracToStr(f);
+  }
+  return `(${fracToStr(f)})`;
 }
 
 export function gaussianElimination(input: number[][]): Step[] {
   const steps: Step[] = [];
-  const m = cloneMatrix(input);
-  const rows = m.length;
-  const cols = m[0].length;
+  const rows = input.length;
+  const cols = input[0].length;
+  const m: Frac[][] = input.map(r => r.map(v => fracFromNum(v)));
 
   let pivotRow = 0;
 
   for (let col = 0; col < cols - 1 && pivotRow < rows; col++) {
+    // Partial pivoting
     let maxIdx = pivotRow;
     for (let i = pivotRow + 1; i < rows; i++) {
-      if (Math.abs(m[i][col]) > Math.abs(m[maxIdx][col])) maxIdx = i;
+      if (fracAbs(m[i][col]) > fracAbs(m[maxIdx][col])) maxIdx = i;
     }
 
-    if (Math.abs(m[maxIdx][col]) < 1e-10) continue;
+    if (fracIsZero(m[maxIdx][col])) continue;
 
     // Swap
     if (maxIdx !== pivotRow) {
       [m[pivotRow], m[maxIdx]] = [m[maxIdx], m[pivotRow]];
       steps.push({
         operation: `R${pivotRow + 1} ↔ R${maxIdx + 1}`,
-        explanation: `Swap rows to bring the largest value (${formatNum(m[pivotRow][col])}) into the pivot position for column ${col + 1}. This improves numerical accuracy.`,
-        matrix: cloneMatrix(m),
+        explanation: `Swap rows to bring the largest value (${fracToStr(m[pivotRow][col])}) into the pivot position for column ${col + 1}.`,
+        matrix: fracMatrixToNum(m),
         pivotCell: [pivotRow, col],
         changedRows: [pivotRow, maxIdx],
       });
     }
 
     // Scale
-    const pivotVal = m[pivotRow][col];
-    if (Math.abs(pivotVal - 1) > 1e-10) {
-      const label =
-        pivotVal === -1
-          ? `R${pivotRow + 1} → −R${pivotRow + 1}`
-          : `R${pivotRow + 1} → R${pivotRow + 1} / ${formatNum(pivotVal)}`;
-      for (let j = 0; j < cols; j++) m[pivotRow][j] /= pivotVal;
+    const pivotVal: Frac = [...m[pivotRow][col]];
+    if (!(pivotVal[0] === pivotVal[1])) { // not equal to 1
+      const label = pivotVal[0] === -1 && pivotVal[1] === 1
+        ? `R${pivotRow + 1} → −R${pivotRow + 1}`
+        : `R${pivotRow + 1} → R${pivotRow + 1} / ${fracToStr(pivotVal)}`;
+      for (let j = 0; j < cols; j++) m[pivotRow][j] = fracDiv(m[pivotRow][j], pivotVal);
       steps.push({
         operation: label,
-        explanation: `Divide row ${pivotRow + 1} by ${formatNum(pivotVal)} so the pivot element becomes 1. A leading 1 makes elimination easier.`,
-        matrix: cloneMatrix(m),
+        explanation: `Divide row ${pivotRow + 1} by ${fracToStr(pivotVal)} so the pivot element becomes 1.`,
+        matrix: fracMatrixToNum(m),
         pivotCell: [pivotRow, col],
         changedRows: [pivotRow],
       });
@@ -71,22 +141,25 @@ export function gaussianElimination(input: number[][]): Step[] {
 
     // Eliminate below
     for (let i = pivotRow + 1; i < rows; i++) {
-      const factor = m[i][col];
-      if (Math.abs(factor) < 1e-10) continue;
+      const factor: Frac = [...m[i][col]];
+      if (fracIsZero(factor)) continue;
 
-      for (let j = 0; j < cols; j++) m[i][j] -= factor * m[pivotRow][j];
+      for (let j = 0; j < cols; j++) {
+        m[i][j] = fracSub(m[i][j], fracMul(factor, m[pivotRow][j]));
+      }
 
       let label: string;
-      if (factor > 0) {
-        label = `R${i + 1} → R${i + 1} − ${formatCoeff(factor)}R${pivotRow + 1}`;
+      if (fracToNum(factor) > 0) {
+        label = `R${i + 1} → R${i + 1} − ${formatCoeffFrac(factor)}R${pivotRow + 1}`;
       } else {
-        label = `R${i + 1} → R${i + 1} + ${formatCoeff(-factor)}R${pivotRow + 1}`;
+        const neg: Frac = [-factor[0], factor[1]];
+        label = `R${i + 1} → R${i + 1} + ${formatCoeffFrac(neg)}R${pivotRow + 1}`;
       }
 
       steps.push({
         operation: label,
-        explanation: `Eliminate the ${formatNum(factor)} in row ${i + 1}, column ${col + 1} to create a zero below the pivot. This clears the column below the leading 1.`,
-        matrix: cloneMatrix(m),
+        explanation: `Eliminate the ${fracToStr(factor)} in row ${i + 1}, column ${col + 1} to create a zero below the pivot.`,
+        matrix: fracMatrixToNum(m),
         pivotCell: [pivotRow, col],
         changedRows: [i],
       });
@@ -101,18 +174,20 @@ export function gaussianElimination(input: number[][]): Step[] {
 export function gaussJordanElimination(input: number[][]): { refSteps: Step[]; rrefSteps: Step[] } {
   const refSteps = gaussianElimination(input);
 
-  const m = refSteps.length > 0
-    ? cloneMatrix(refSteps[refSteps.length - 1].matrix)
-    : cloneMatrix(input);
+  const lastMatrix = refSteps.length > 0
+    ? refSteps[refSteps.length - 1].matrix
+    : input;
 
-  const rows = m.length;
-  const cols = m[0].length;
+  const rows = lastMatrix.length;
+  const cols = lastMatrix[0].length;
+  const m: Frac[][] = lastMatrix.map(r => r.map(v => fracFromNum(v)));
   const rrefSteps: Step[] = [];
 
   const pivotCols: number[] = [];
   for (let i = 0; i < rows; i++) {
     for (let j = 0; j < cols - 1; j++) {
-      if (Math.abs(m[i][j] - 1) < 1e-10) {
+      const f = m[i][j];
+      if (f[0] === 1 && f[1] === 1) {
         pivotCols.push(j);
         break;
       }
@@ -124,22 +199,25 @@ export function gaussJordanElimination(input: number[][]): { refSteps: Step[]; r
     const pRow = p;
 
     for (let i = pRow - 1; i >= 0; i--) {
-      const factor = m[i][col];
-      if (Math.abs(factor) < 1e-10) continue;
+      const factor: Frac = [...m[i][col]];
+      if (fracIsZero(factor)) continue;
 
-      for (let j = 0; j < cols; j++) m[i][j] -= factor * m[pRow][j];
+      for (let j = 0; j < cols; j++) {
+        m[i][j] = fracSub(m[i][j], fracMul(factor, m[pRow][j]));
+      }
 
       let label: string;
-      if (factor > 0) {
-        label = `R${i + 1} → R${i + 1} − ${formatCoeff(factor)}R${pRow + 1}`;
+      if (fracToNum(factor) > 0) {
+        label = `R${i + 1} → R${i + 1} − ${formatCoeffFrac(factor)}R${pRow + 1}`;
       } else {
-        label = `R${i + 1} → R${i + 1} + ${formatCoeff(-factor)}R${pRow + 1}`;
+        const neg: Frac = [-factor[0], factor[1]];
+        label = `R${i + 1} → R${i + 1} + ${formatCoeffFrac(neg)}R${pRow + 1}`;
       }
 
       rrefSteps.push({
         operation: label,
-        explanation: `Eliminate the ${formatNum(factor)} in row ${i + 1}, column ${col + 1} to create a zero above the pivot. Back elimination makes each pivot the only non-zero in its column.`,
-        matrix: cloneMatrix(m),
+        explanation: `Eliminate the ${fracToStr(factor)} in row ${i + 1}, column ${col + 1} to create a zero above the pivot.`,
+        matrix: fracMatrixToNum(m),
         pivotCell: [pRow, col],
         changedRows: [i],
       });
