@@ -7,14 +7,20 @@ interface Props {
 
 const MatrixDisplay = ({ matrix, label }: Props) => (
   <div className="flex flex-col items-center gap-2">
-    {label && <span className="text-sm font-medium text-muted-foreground">{label}</span>}
+    {label && <span className="text-xs font-medium text-muted-foreground">{label}</span>}
     <div className="flex items-stretch">
       <div className="matrix-bracket-left" />
-      <div className="flex flex-col gap-0.5 py-1 px-1">
+      <div className="flex flex-col gap-1 py-1.5 px-1">
         {matrix.map((row, i) => (
           <div key={i} className="flex gap-1">
             {row.map((val, j) => (
-              <div key={j} className="matrix-cell-display rounded-sm">
+              <div
+                key={j}
+                className={`matrix-cell-display ${
+                  val === 1 && j <= i ? "text-accent font-semibold" : 
+                  val === 0 && j < i ? "text-muted-foreground/40" : "text-foreground"
+                }`}
+              >
                 {formatNum(val)}
               </div>
             ))}
