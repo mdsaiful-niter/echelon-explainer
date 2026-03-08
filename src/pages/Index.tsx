@@ -254,13 +254,35 @@ const Index = () => {
           )}
         </AnimatePresence>
 
-        {steps && steps.length === 0 && (
+        {/* RREF Steps */}
+        <AnimatePresence>
+          {rrefSteps && rrefSteps.length > 0 && (
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col gap-4"
+            >
+              <div className="flex items-center gap-2">
+                <ArrowDown className="h-4 w-4 text-accent" />
+                <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                  Back Elimination (RREF)
+                </h2>
+                <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-mono">
+                  {rrefSteps.length} ops
+                </span>
+              </div>
+              <StepDisplay steps={rrefSteps} />
+            </motion.section>
+          )}
+        </AnimatePresence>
+
+        {steps && steps.length === 0 && (!rrefSteps || rrefSteps.length === 0) && (
           <motion.section
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="glass rounded-xl p-6 text-center text-muted-foreground text-sm"
           >
-            Already in Row Echelon Form — no operations needed.
+            Already in {mode === "rref" ? "Reduced " : ""}Row Echelon Form — no operations needed.
           </motion.section>
         )}
 
