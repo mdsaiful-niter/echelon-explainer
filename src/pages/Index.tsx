@@ -49,6 +49,7 @@ const Index = () => {
     setSize(clamped);
     setValues(Array.from({ length: clamped }, () => Array(clamped + 1).fill(0)));
     setSteps(null);
+    setRrefSteps(null);
     setShowInput(true);
   };
 
