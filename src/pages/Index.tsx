@@ -84,6 +84,7 @@ const Index = () => {
   const reset = () => {
     setValues(Array.from({ length: size }, () => Array(size + 1).fill(0)));
     setSteps(null);
+    setRrefSteps(null);
   };
 
   const finalMatrix =
