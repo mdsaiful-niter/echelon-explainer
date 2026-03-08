@@ -6,12 +6,6 @@ export interface Step {
   changedRows?: number[];
 }
 
-export interface Solution {
-  type: 'unique' | 'infinite' | 'none';
-  variables?: { name: string; value: string }[];
-  message?: string;
-}
-
 // Fraction representation: [numerator, denominator]
 type Frac = [number, number];
 
@@ -95,47 +89,6 @@ function formatCoeffFrac(f: Frac): string {
   return `(${fracToStr(f)})`;
 }
 
-export function extractSolution(matrix: number[][]): Solution {
-  const rows = matrix.length;
-  const cols = matrix[0].length;
-  const numVars = cols - 1;
-
-  // Check for inconsistent rows: [0 0 ... 0 | nonzero]
-  for (let i = 0; i < rows; i++) {
-    const allZeroCoeffs = matrix[i].slice(0, numVars).every(v => Math.abs(v) < 1e-10);
-    const rhs = matrix[i][numVars];
-    if (allZeroCoeffs && Math.abs(rhs) > 1e-10) {
-      return { type: 'none', message: 'No solution — the system is inconsistent.' };
-    }
-  }
-
-  // Find pivot columns
-  const pivotCols: number[] = [];
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < numVars; j++) {
-      if (Math.abs(matrix[i][j]) > 1e-10) {
-        pivotCols.push(j);
-        break;
-      }
-    }
-  }
-
-  if (pivotCols.length < numVars) {
-    return { type: 'infinite', message: 'Infinitely many solutions — the system has free variables.' };
-  }
-
-  // Unique solution
-  const variables = [];
-  for (let i = 0; i < Math.min(rows, numVars); i++) {
-    variables.push({
-      name: `x${i + 1}`,
-      value: formatNum(Math.abs(matrix[i][cols - 1]) < 1e-10 ? 0 : matrix[i][cols - 1]),
-    });
-  }
-
-  return { type: 'unique', variables };
-}
-
 export function gaussianElimination(input: number[][]): Step[] {
   const steps: Step[] = [];
   const rows = input.length;
@@ -145,6 +98,7 @@ export function gaussianElimination(input: number[][]): Step[] {
   let pivotRow = 0;
 
   for (let col = 0; col < cols - 1 && pivotRow < rows; col++) {
+    // Partial pivoting
     let maxIdx = pivotRow;
     for (let i = pivotRow + 1; i < rows; i++) {
       if (fracAbs(m[i][col]) > fracAbs(m[maxIdx][col])) maxIdx = i;
@@ -152,6 +106,7 @@ export function gaussianElimination(input: number[][]): Step[] {
 
     if (fracIsZero(m[maxIdx][col])) continue;
 
+    // Swap
     if (maxIdx !== pivotRow) {
       [m[pivotRow], m[maxIdx]] = [m[maxIdx], m[pivotRow]];
       steps.push({
@@ -163,6 +118,7 @@ export function gaussianElimination(input: number[][]): Step[] {
       });
     }
 
+    // Scale
     const pivotVal: Frac = [...m[pivotRow][col]];
     if (!(pivotVal[0] === pivotVal[1])) {
       const label = pivotVal[0] === -1 && pivotVal[1] === 1
@@ -178,6 +134,7 @@ export function gaussianElimination(input: number[][]): Step[] {
       });
     }
 
+    // Eliminate below
     for (let i = pivotRow + 1; i < rows; i++) {
       const factor: Frac = [...m[i][col]];
       if (fracIsZero(factor)) continue;
@@ -207,60 +164,4 @@ export function gaussianElimination(input: number[][]): Step[] {
   }
 
   return steps;
-}
-
-export function gaussJordanElimination(input: number[][]): { refSteps: Step[]; rrefSteps: Step[] } {
-  const refSteps = gaussianElimination(input);
-
-  const lastMatrix = refSteps.length > 0
-    ? refSteps[refSteps.length - 1].matrix
-    : input;
-
-  const rows = lastMatrix.length;
-  const cols = lastMatrix[0].length;
-  const m: Frac[][] = lastMatrix.map(r => r.map(v => fracFromNum(v)));
-  const rrefSteps: Step[] = [];
-
-  const pivotCols: number[] = [];
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < cols - 1; j++) {
-      const f = m[i][j];
-      if (f[0] === 1 && f[1] === 1) {
-        pivotCols.push(j);
-        break;
-      }
-    }
-  }
-
-  for (let p = pivotCols.length - 1; p >= 0; p--) {
-    const col = pivotCols[p];
-    const pRow = p;
-
-    for (let i = pRow - 1; i >= 0; i--) {
-      const factor: Frac = [...m[i][col]];
-      if (fracIsZero(factor)) continue;
-
-      for (let j = 0; j < cols; j++) {
-        m[i][j] = fracSub(m[i][j], fracMul(factor, m[pRow][j]));
-      }
-
-      let label: string;
-      if (fracToNum(factor) > 0) {
-        label = `R${i + 1} → R${i + 1} − ${formatCoeffFrac(factor)}R${pRow + 1}`;
-      } else {
-        const neg: Frac = [-factor[0], factor[1]];
-        label = `R${i + 1} → R${i + 1} + ${formatCoeffFrac(neg)}R${pRow + 1}`;
-      }
-
-      rrefSteps.push({
-        operation: label,
-        explanation: `Eliminate the ${fracToStr(factor)} in row ${i + 1}, column ${col + 1} to create a zero above the pivot.`,
-        matrix: fracMatrixToNum(m),
-        pivotCell: [pRow, col],
-        changedRows: [i],
-      });
-    }
-  }
-
-  return { refSteps, rrefSteps };
 }
