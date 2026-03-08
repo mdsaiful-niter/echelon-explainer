@@ -75,10 +75,14 @@ const Index = () => {
       const result = gaussianElimination(values);
       setSteps(result);
       setRrefSteps(null);
+      const finalM = result.length > 0 ? result[result.length - 1].matrix : values;
+      setSolution(extractSolution(finalM));
     } else {
       const { refSteps, rrefSteps: rr } = gaussJordanElimination(values);
       setSteps(refSteps);
       setRrefSteps(rr);
+      const finalM = rr.length > 0 ? rr[rr.length - 1].matrix : (refSteps.length > 0 ? refSteps[refSteps.length - 1].matrix : values);
+      setSolution(extractSolution(finalM));
     }
   };
 
