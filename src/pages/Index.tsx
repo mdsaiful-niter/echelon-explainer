@@ -40,6 +40,8 @@ const Index = () => {
     Array.from({ length: 3 }, () => Array(4).fill(0))
   );
   const [steps, setSteps] = useState<Step[] | null>(null);
+  const [rrefSteps, setRrefSteps] = useState<Step[] | null>(null);
+  const [mode, setMode] = useState<"ref" | "rref">("ref");
   const [showInput, setShowInput] = useState(false);
 
   const handleSizeChange = (n: number) => {
