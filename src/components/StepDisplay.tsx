@@ -16,7 +16,7 @@ const StepDisplay = ({ steps }: Props) => (
         transition={{ delay: idx * 0.08 }}
         className="step-card p-4 flex flex-col sm:flex-row items-center gap-4"
       >
-        <div className="flex flex-col items-center gap-1.5 min-w-[140px] shrink-0">
+        <div className="flex flex-col items-center gap-1.5 min-w-[160px] shrink-0">
           <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
             Step {idx + 1}
           </span>
@@ -25,7 +25,7 @@ const StepDisplay = ({ steps }: Props) => (
           </span>
         </div>
         <div className="w-px h-10 bg-border hidden sm:block" />
-        <MatrixDisplay matrix={step.matrix} />
+        <MatrixDisplay matrix={step.matrix} pivotCell={step.pivotCell} />
       </motion.div>
     ))}
   </div>
