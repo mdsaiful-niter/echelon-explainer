@@ -4,11 +4,13 @@ interface Props {
   matrix: number[][];
   label?: string;
   pivotCell?: [number, number];
+  highlightRows?: number[];
 }
 
-const MatrixDisplay = ({ matrix, label, pivotCell }: Props) => {
+const MatrixDisplay = ({ matrix, label, pivotCell, highlightRows }: Props) => {
   const cols = matrix[0]?.length ?? 0;
   const augCol = cols - 1;
+  const isHighlighted = (row: number) => highlightRows?.includes(row);
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -17,11 +19,16 @@ const MatrixDisplay = ({ matrix, label, pivotCell }: Props) => {
         <div className="matrix-bracket-left" />
         <div className="flex flex-col gap-1 py-1.5 px-1">
           {matrix.map((row, i) => (
-            <div key={i} className="flex gap-1 items-center">
+            <div
+              key={i}
+              className={`flex gap-1 items-center rounded-sm transition-colors ${
+                isHighlighted(i) ? "bg-primary/10" : ""
+              }`}
+            >
               {row.map((val, j) => {
                 const isPivot = pivotCell && pivotCell[0] === i && pivotCell[1] === j;
                 const isZero = Math.abs(val) < 1e-10;
-                const isLeadingOne = val === 1 && j <= i;
+                const isLeadingOne = Math.abs(val - 1) < 1e-10 && j <= i;
 
                 return (
                   <div key={j} className="flex items-center gap-1">
