@@ -70,8 +70,15 @@ const Index = () => {
   };
 
   const reduce = () => {
-    const result = gaussianElimination(values);
-    setSteps(result);
+    if (mode === "ref") {
+      const result = gaussianElimination(values);
+      setSteps(result);
+      setRrefSteps(null);
+    } else {
+      const { refSteps, rrefSteps: rr } = gaussJordanElimination(values);
+      setSteps(refSteps);
+      setRrefSteps(rr);
+    }
   };
 
   const reset = () => {
