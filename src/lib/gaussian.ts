@@ -90,3 +90,55 @@ export function gaussianElimination(input: number[][]): Step[] {
 
   return steps;
 }
+
+export function gaussJordanElimination(input: number[][]): { refSteps: Step[]; rrefSteps: Step[] } {
+  const refSteps = gaussianElimination(input);
+
+  // Start RREF from the REF result
+  const m = refSteps.length > 0
+    ? cloneMatrix(refSteps[refSteps.length - 1].matrix)
+    : cloneMatrix(input);
+
+  const rows = m.length;
+  const cols = m[0].length;
+  const rrefSteps: Step[] = [];
+
+  // Find pivot columns
+  const pivotCols: number[] = [];
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols - 1; j++) {
+      if (Math.abs(m[i][j] - 1) < 1e-10) {
+        pivotCols.push(j);
+        break;
+      }
+    }
+  }
+
+  // Back elimination: for each pivot from bottom to top, eliminate above
+  for (let p = pivotCols.length - 1; p >= 0; p--) {
+    const col = pivotCols[p];
+    const pRow = p;
+
+    for (let i = pRow - 1; i >= 0; i--) {
+      const factor = m[i][col];
+      if (Math.abs(factor) < 1e-10) continue;
+
+      for (let j = 0; j < cols; j++) m[i][j] -= factor * m[pRow][j];
+
+      let label: string;
+      if (factor > 0) {
+        label = `R${i + 1} → R${i + 1} − ${formatCoeff(factor)}R${pRow + 1}`;
+      } else {
+        label = `R${i + 1} → R${i + 1} + ${formatCoeff(-factor)}R${pRow + 1}`;
+      }
+
+      rrefSteps.push({
+        operation: label,
+        matrix: cloneMatrix(m),
+        pivotCell: [pRow, col],
+      });
+    }
+  }
+
+  return { refSteps, rrefSteps };
+}

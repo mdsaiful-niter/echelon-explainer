@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import MatrixInput from "@/components/MatrixInput";
 import MatrixDisplay from "@/components/MatrixDisplay";
 import StepDisplay from "@/components/StepDisplay";
-import { gaussianElimination, type Step } from "@/lib/gaussian";
+import { gaussianElimination, gaussJordanElimination, type Step } from "@/lib/gaussian";
 import { Grid3X3, Sparkles, ArrowDown, RotateCcw } from "lucide-react";
 
 const EXAMPLES: { label: string; matrix: number[][] }[] = [
@@ -40,6 +40,8 @@ const Index = () => {
     Array.from({ length: 3 }, () => Array(4).fill(0))
   );
   const [steps, setSteps] = useState<Step[] | null>(null);
+  const [rrefSteps, setRrefSteps] = useState<Step[] | null>(null);
+  const [mode, setMode] = useState<"ref" | "rref">("ref");
   const [showInput, setShowInput] = useState(false);
 
   const handleSizeChange = (n: number) => {
@@ -47,6 +49,7 @@ const Index = () => {
     setSize(clamped);
     setValues(Array.from({ length: clamped }, () => Array(clamped + 1).fill(0)));
     setSteps(null);
+    setRrefSteps(null);
     setShowInput(true);
   };
 
@@ -62,21 +65,33 @@ const Index = () => {
     setSize(matrix.length);
     setValues(matrix.map((r) => [...r]));
     setSteps(null);
+    setRrefSteps(null);
     setShowInput(true);
   };
 
   const reduce = () => {
-    const result = gaussianElimination(values);
-    setSteps(result);
+    if (mode === "ref") {
+      const result = gaussianElimination(values);
+      setSteps(result);
+      setRrefSteps(null);
+    } else {
+      const { refSteps, rrefSteps: rr } = gaussJordanElimination(values);
+      setSteps(refSteps);
+      setRrefSteps(rr);
+    }
   };
 
   const reset = () => {
     setValues(Array.from({ length: size }, () => Array(size + 1).fill(0)));
     setSteps(null);
+    setRrefSteps(null);
   };
 
-  const finalMatrix =
+  const refFinal =
     steps && steps.length > 0 ? steps[steps.length - 1].matrix : null;
+  const rrefFinal =
+    rrefSteps && rrefSteps.length > 0 ? rrefSteps[rrefSteps.length - 1].matrix : null;
+  const finalMatrix = mode === "rref" && rrefFinal ? rrefFinal : refFinal;
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -97,7 +112,7 @@ const Index = () => {
               Gaussian Elimination
             </h1>
             <p className="text-xs text-muted-foreground tracking-wide uppercase mt-0.5">
-              Augmented Matrix → Row Echelon Form
+              Augmented Matrix → {mode === "rref" ? "Reduced Row Echelon Form" : "Row Echelon Form"}
             </p>
           </div>
         </div>
@@ -182,6 +197,29 @@ const Index = () => {
                   onChange={handleCellChange}
                 />
               </div>
+              {/* Mode toggle */}
+              <div className="flex items-center gap-1 bg-secondary rounded-lg p-1 w-full sm:w-auto">
+                <button
+                  onClick={() => { setMode("ref"); setSteps(null); setRrefSteps(null); }}
+                  className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-xs font-bold transition-all ${
+                    mode === "ref"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  REF
+                </button>
+                <button
+                  onClick={() => { setMode("rref"); setSteps(null); setRrefSteps(null); }}
+                  className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-xs font-bold transition-all ${
+                    mode === "rref"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  RREF
+                </button>
+              </div>
               <Button
                 onClick={reduce}
                 size="lg"
@@ -216,13 +254,35 @@ const Index = () => {
           )}
         </AnimatePresence>
 
-        {steps && steps.length === 0 && (
+        {/* RREF Steps */}
+        <AnimatePresence>
+          {rrefSteps && rrefSteps.length > 0 && (
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col gap-4"
+            >
+              <div className="flex items-center gap-2">
+                <ArrowDown className="h-4 w-4 text-accent" />
+                <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                  Back Elimination (RREF)
+                </h2>
+                <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-mono">
+                  {rrefSteps.length} ops
+                </span>
+              </div>
+              <StepDisplay steps={rrefSteps} />
+            </motion.section>
+          )}
+        </AnimatePresence>
+
+        {steps && steps.length === 0 && (!rrefSteps || rrefSteps.length === 0) && (
           <motion.section
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="glass rounded-xl p-6 text-center text-muted-foreground text-sm"
           >
-            Already in Row Echelon Form — no operations needed.
+            Already in {mode === "rref" ? "Reduced " : ""}Row Echelon Form — no operations needed.
           </motion.section>
         )}
 
@@ -235,7 +295,7 @@ const Index = () => {
               className="result-card p-6 flex flex-col items-center gap-4 glow-accent"
             >
               <h2 className="text-sm font-bold uppercase tracking-wider text-accent">
-                ✓ Row Echelon Form
+                ✓ {mode === "rref" ? "Reduced Row Echelon Form" : "Row Echelon Form"}
               </h2>
               <MatrixDisplay matrix={finalMatrix} />
             </motion.section>
