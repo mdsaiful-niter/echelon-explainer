@@ -197,6 +197,29 @@ const Index = () => {
                   onChange={handleCellChange}
                 />
               </div>
+              {/* Mode toggle */}
+              <div className="flex items-center gap-1 bg-secondary rounded-lg p-1 w-full sm:w-auto">
+                <button
+                  onClick={() => { setMode("ref"); setSteps(null); setRrefSteps(null); }}
+                  className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-xs font-bold transition-all ${
+                    mode === "ref"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  REF
+                </button>
+                <button
+                  onClick={() => { setMode("rref"); setSteps(null); setRrefSteps(null); }}
+                  className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-xs font-bold transition-all ${
+                    mode === "rref"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  RREF
+                </button>
+              </div>
               <Button
                 onClick={reduce}
                 size="lg"
